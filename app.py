@@ -462,9 +462,72 @@ html.Div([dash_table.DataTable(
     )], style={'position': 'absolute', 'top': '18%', 'left': '15%', 'rigth': '80%', 'width': '1700px',
                'height': '700px', 'border': '9B51E0'}),
 
+]),dcc.Tab(label='Correlation of two parameters', children=[
+html.Div([
+            html.Div([
+                dcc.Dropdown(
+                    id='crossfilter-xaxis-column',
+                    options=[{'label': i, 'value': i} for i in available_indicators], style={'width': '50%'},
+                    value='T'
+                ),
+                dcc.RadioItems(
+                id='crossfilter-xaxis-type',
+                options=[{'label': i, 'value': i} for i in ['Linear', 'Log']],
+                value='Linear',
+                labelStyle={'display': 'inline-block'}
+                )
+            ],
+                style={'width': '49%', 'display': 'inline-block'}),
+            html.Div([
+                dcc.Dropdown(
+                    id='crossfilter-yaxis-column',
+                    options=[{'label': i, 'value': i} for i in available_indicators],
+                    style={'top': '10%', 'left': '60%', 'width': '50%'},
+                    value='Humidity'
+                ),
+            dcc.RadioItems(
+                id='crossfilter-yaxis-type',
+                options=[{'label': i, 'value': i} for i in ['Linear', 'Log']],
+                value='Linear',
+                labelStyle={'display': 'inline-block'}
+                 )
+            ], style={'width': '49%', 'float': 'right', 'display': 'inline-block'}
+            ),
+
+                dcc.DatePickerRange(
+                    id="datePickerRangeId",
+                    # start_date=""
+                    start_date_placeholder_text="Start Period",
+                    start_date_id="startDateId",
+                    end_date_id="endDateId",
+                    start_date='2020-04-01',
+                    end_date='2020-04-10',
+                    display_format='MMM Do, YY',
+                    end_date_placeholder_text="End Period",
+
+                ),
+            html.Div([
+                dcc.Graph(
+                    id='crossfilterParameterGraph',
+                    hoverData={'points': [{'customdata': ''}]}
+                )
+              ], style={'width': '49%', 'display': 'inline-block', 'padding': '0 20'}),
+           # ),
+
+          #  ],
+            html.Div([
+            dcc.Graph(id='x-time-series'),
+            dcc.Graph(id='y-time-series'),
+            ], style={'display': 'inline-block', 'width': '49%'}),
+
+        ])
+    ])
+
+   ])
 ])
-  ])
-])
+
+
+
 #@cache.memoize(timeout=TIMEOUT)
 @app.callback(dash.dependencies.Output('intermediate-value', 'children'),
              [dash.dependencies.Input('update', 'n_intervals')])
@@ -809,25 +872,35 @@ def drawGraphBarAverage(parameter, dropDownList, startDate, endDate, jsonified_d
     return {'data': [data],
             'layout': go.Layout(title=go.layout.Title(text=': {}, {}'.format(parameter, dim)))}
 
+@app.callback(
+    dash.dependencies.Output('crossfilterParameterGraph', 'figure'),
+    [dash.dependencies.Input('crossfilter-xaxis-column', 'value'),
+     dash.dependencies.Input('crossfilter-yaxis-column', 'value'),
+     dash.dependencies.Input('crossfilter-xaxis-type', 'value'),
+     dash.dependencies.Input('crossfilter-yaxis-type', 'value'),
+     dash.dependencies.Input('datePickerRangeId', 'start_date'),
+     dash.dependencies.Input('datePickerRangeId', 'end_date'),
+     dash.dependencies.Input('intermediate-value', 'children')
+     ])
 
+def updateGraph(firstParameter_xaxis, secondParameter_yaxis,xaxis_type, yaxis_type, startDatePeriod, endDatePeriod,jsonified_data):
+    df = pd.read_json(jsonified_data, orient='split')
+    dataFrameTable = pd.DataFrame.from_dict(df)
+   # query = "SELECT date_time,data,valuetype, dimension FROM vw_sensorsdata WHERE valuetype = '%s'AND date_time BETWEEN '%s' AND '%s' ORDER BY date_time DESC" % (firstParameter_xaxis, startDatePeriod,endDatePeriod)
+   # query2 = "SELECT date_time,data,valuetype, dimension FROM vw_sensorsdata WHERE valuetype = '%s'AND date_time BETWEEN '%s' AND '%s' ORDER BY date_time DESC" % (secondParameter_yaxis, startDatePeriod,endDatePeriod)
+    filtered_df = dataFrameTable[(dataFrameTable['date_time'].between(startDatePeriod, endDatePeriod))]
 
-def updateGraphRatio(firstParameter_xaxis, secondParameter_yaxis,xaxis_type, yaxis_type, startDatePeriod, endDatePeriod):
+    #dataFrameX = create_pandas_table(query)
+    #dataFrameY = create_pandas_table(query2)
 
-    query = "SELECT date_time,data,valuetype, dimension FROM vw_sensorsdata WHERE valuetype = '%s'AND date_time BETWEEN '%s' AND '%s' ORDER BY date_time DESC" % (firstParameter_xaxis, startDatePeriod,endDatePeriod)
-    query2 = "SELECT date_time,data,valuetype, dimension FROM vw_sensorsdata WHERE valuetype = '%s'AND date_time BETWEEN '%s' AND '%s' ORDER BY date_time DESC" % (secondParameter_yaxis, startDatePeriod,endDatePeriod)
-
-
-    dataFrameX = create_pandas_table(query)
-    dataFrameY = create_pandas_table(query2)
-
-    dffX = dataFrameX[dataFrameX['valuetype'] == firstParameter_xaxis]
-    dffY = dataFrameY[dataFrameX['valuetype'] == secondParameter_yaxis]
+    #dffX = dataFrameX[dataFrameX['valuetype'] == firstParameter_xaxis]
+   # dffY = dataFrameY[dataFrameX['valuetype'] == secondParameter_yaxis]
     return{
         'data': [dict(
-            x=dffX[dffX['valuetype'] == firstParameter_xaxis]['data'],
-            y=dffY[dffY['valuetype'] == secondParameter_yaxis]['data'],
-            text=dffX[dffX['valuetype'] == secondParameter_yaxis]['dimension'],
-            customdata=dffX[dffX['valuetype'] == secondParameter_yaxis]['dimension'],
+            x=filtered_df[filtered_df['valuetype'] == firstParameter_xaxis]['data'],
+            y=filtered_df[filtered_df['valuetype'] == secondParameter_yaxis]['data'],
+            text=filtered_df[filtered_df['valuetype'] == secondParameter_yaxis]['dimension'],
+            customdata=filtered_df[filtered_df['valuetype'] == secondParameter_yaxis]['sensor'],
             mode='markers',
             marker={
                 'size': 15,
@@ -855,7 +928,7 @@ def create_series(dff,axis_type, title):
 
     return{
         'data':[dict(
-            x=dff['data'],
+            x=dff['date_time'],
             y=dff['data'],
             mode='lines+markers'
         )],
@@ -874,41 +947,34 @@ def create_series(dff,axis_type, title):
         }
     }
 
+@app.callback(
+    dash.dependencies.Output('x-time-series', 'figure'),
+    [dash.dependencies.Input('crossfilterParameterGraph', 'hoverData'),
+     dash.dependencies.Input('crossfilter-xaxis-column', 'value'),
+     dash.dependencies.Input('crossfilter-xaxis-type', 'value'),
+    dash.dependencies.Input('intermediate-value', 'children')
+   ])
+def update_x_timeseries(hoverData, firstParameter_xaxis, firstParameter_xaxis_type,jsonified_data):
+    df = pd.read_json(jsonified_data, orient='split')
 
-def update_x_timeseries(hoverData, firstParameter_xaxis, firstParameter_xaxis_type,startDatePeriod,endDatePeriod):
-   # conn = psycopg2.connect(host="dev.vk.edu.ee", port=5432, database="dbhitsa2019", user="ruuvi_sel",
-      #                      password="ruuvisel")
-    dataSQL = []
-    query = "SELECT date_time,  data, valuetype dimension FROM vw_sensorsdata WHERE valuetype= '%s' AND date_time BETWEEN '%s' AND '%s' ORDER BY date_time DESC" % (firstParameter_xaxis_type, startDatePeriod, endDatePeriod)
-    #rows = cursor.fetchall()
-    #for row in rows:
-       # dataSQL.append(list(row))
-    df = create_pandas_table(query)
-    labels = ['date_time', 'valuetype', 'data', 'dimension']
-   # df = pd.DataFrame.from_records(dataSQL, columns=labels)
-    dff = df[df['valuetype'] == firstParameter_xaxis]
     parameterName = hoverData['points'][0]['customdata']
     dff = df[df['valuetype'] == parameterName]
     dff = df[df['valuetype'] == firstParameter_xaxis]
     title = '<b>{}</b><br>{}'.format(parameterName,firstParameter_xaxis)
     return create_series(dff,firstParameter_xaxis_type,title)
 
-#@app.callback(
-    #    Output('y-time-series', 'figure'),
-    #    [Input('crossfilter-indicator-scatter', 'hoverData'),
-    #    Input('secondParameter_yaxis', 'value'),
-    #    Input('secondParameter_yaxis-type', 'value'),
-     #   Input(component_id='datePickerRangeId', component_property='start_date'),
-     #   Input(component_id='datePickerRangeId', component_property='end_date')
-    #     ])
-def update_y_timeseries(hoverData, secondParameter_yaxis, secondParameter_yaxis_type,startDatePeriod,endDatePeriod):
-    dataSQL = []
-    query = "SELECT date_time,  data, dimension FROM vw_sensorsdata WHERE valuetype= '%s' AND date_time BETWEEN '%s' AND '%s' ORDER BY date_time DESC LIMIT 5000" % (secondParameter_yaxis, startDatePeriod, endDatePeriod)
-    #rows = cursor.fetchall()
-    #for row in rows:
-       # dataSQL.append(list(row))
-    df = create_pandas_table(query)
-    labels = ['date_time', 'valuetype', 'data', 'dimension']
+@app.callback(
+        Output('y-time-series', 'figure'),
+        [Input('crossfilterParameterGraph', 'hoverData'),
+        Input('crossfilter-yaxis-column', 'value'),
+        Input('crossfilter-yaxis-type', 'value'),
+        Input('intermediate-value', 'children')
+         ])
+def update_y_timeseries(hoverData, secondParameter_yaxis, secondParameter_yaxis_type,jsonified_data):
+
+    df = pd.read_json(jsonified_data, orient='split')
+    dataFrameTable = pd.DataFrame.from_dict(df)
+
    # df = pd.DataFrame.from_records(dataSQL, columns=labels)
     dff = df[df['valuetype'] == secondParameter_yaxis]
     parameterName = hoverData['points'][0]['customdata']
