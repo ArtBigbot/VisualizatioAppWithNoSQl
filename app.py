@@ -491,21 +491,27 @@ html.Div([
                 value='Linear',
                 labelStyle={'display': 'inline-block'}
                  )
-            ], style={'width': '49%', 'float': 'right', 'display': 'inline-block'}
-            ),
+            ], style={'width': '49%', 'float': 'right', 'display': 'inline-block'}),
+    dcc.DatePickerRange(
+        id="datePickerRangeId",
+        # start_date=""
+        start_date_placeholder_text="Start Period",
+        start_date_id="startDateId",
+        end_date_id="endDateId",
+        start_date='2020-04-01',
+        end_date='2020-04-10',
+        display_format='MMM Do, YY',
+        end_date_placeholder_text="End Period",
 
-                dcc.DatePickerRange(
-                    id="datePickerRangeId",
-                    # start_date=""
-                    start_date_placeholder_text="Start Period",
-                    start_date_id="startDateId",
-                    end_date_id="endDateId",
-                    start_date='2020-04-01',
-                    end_date='2020-04-10',
-                    display_format='MMM Do, YY',
-                    end_date_placeholder_text="End Period",
+    ),
 
-                ),
+        ], style={
+            'borderBottom': 'thin lightgrey solid',
+            'backgroundColor': 'rgb(250, 250, 250)',
+            'padding': '10px 5px'
+            }),
+
+
             html.Div([
                 dcc.Graph(
                     id='crossfilterParameterGraph',
@@ -524,7 +530,7 @@ html.Div([
     ])
 
    ])
-])
+#])
 
 
 
