@@ -10,12 +10,15 @@ import dash_daq as daq
 import psycopg2
 import datetime as dt
 import plotly.graph_objects as go
+from time import time
 
 conn = psycopg2.connect(host="dev.vk.edu.ee", port=5432, database="dbhitsa2019", user="ruuvi_sel", password="ruuvisel")
 cursor = conn.cursor()
 query = "SELECT * FROM vw_sensorsdata WHERE room ='208' ORDER BY date_time DESC"
 cachedDataFrame = pd.read_sql_query(query, conn)
-available_indicators = cachedDataFrame['valuetype'].unique()
+
+cachedDataFrame['valuetypeAndSensor'] = cachedDataFrame["valuetype"]+',' + cachedDataFrame["sensor"]
+available_indicators = cachedDataFrame['valuetypeAndSensor'].unique()
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -264,14 +267,29 @@ app.layout = html.Div([
             html.Div([
 
                 dcc.RadioItems(
-                    id='graph_type_tempeture',
+                    id='graph_type_tempetureTemperatureAndHymiditySensor',
                     options=[{'label': i, 'value': i} for i in ['Daily average', 'Current']],
                     value='Daily average',
                     labelStyle={'display': 'inline-block'}
                 ),
 
                 dcc.Graph(
-                    id='graphTempeture')
+                    id='graphTempetureTemperatureAndHymiditySensor')
+            ], style={'display': 'inline-block', 'width': '30%',
+                      'top': '700%', 'left': '330%', 'right': '20%'
+                      }
+            ),
+            html.Div([
+
+                dcc.RadioItems(
+                    id='graph_type_tempetureHighAccuracySensor',
+                    options=[{'label': i, 'value': i} for i in ['Daily average', 'Current']],
+                    value='Daily average',
+                    labelStyle={'display': 'inline-block'}
+                ),
+
+                dcc.Graph(
+                    id='graphTempetureHighAccuracySensor')
             ], style={'display': 'inline-block', 'width': '30%',
                       'top': '700%', 'left': '330%', 'right': '20%'
                       }
@@ -345,14 +363,26 @@ app.layout = html.Div([
             html.Div([
 
                 dcc.RadioItems(
-                    id='graph_type_illuminance',
+                    id='graph_type_illuminanceIR',
                     options=[{'label': i, 'value': i} for i in ['Daily average', 'Current']],
                     value='Daily average',
                     labelStyle={'display': 'inline-block'}
                 ),
 
                 dcc.Graph(
-                    id='graphIlluminance')
+                    id='graphIlluminanceIR')
+            ], style={'display': 'inline-block', 'width': '30%', 'top': '700%', 'left': '330%', 'right': '20%'}),
+            html.Div([
+
+                dcc.RadioItems(
+                    id='graph_type_illuminanceVisible',
+                    options=[{'label': i, 'value': i} for i in ['Daily average', 'Current']],
+                    value='Daily average',
+                    labelStyle={'display': 'inline-block'}
+                ),
+
+                dcc.Graph(
+                    id='graphIlluminanceVisible')
             ], style={'display': 'inline-block', 'width': '30%', 'top': '700%', 'left': '330%', 'right': '20%'}),
 
             html.Div([
@@ -389,7 +419,8 @@ app.layout = html.Div([
                 dcc.Dropdown(
                     id='indicator',
                     options=[{'label': i, 'value': i} for i in available_indicators],
-                    value='T'),
+                     value=available_indicators[0]
+                ),
                 dcc.DatePickerRange(
                     id="datePickerId",
                     start_date_placeholder_text="Start Period",
@@ -400,7 +431,23 @@ app.layout = html.Div([
                     display_format='MMM Do, YY',
                     end_date_placeholder_text="End Period",
                 )
-            ], style={'width': '15%'}, ),
+            ], style={'width': '30%'}, ),
+
+            html.Div([
+
+                dcc.Dropdown(
+                    id='dropDownList',
+                    options=[
+                        {'label': 'Hour average', 'value': 'Hour average'},
+                        {'label': 'Day average', 'value': 'Day average'},
+
+                    ],
+                    placeholder="Select a parameter",
+                    value="Hour average"
+                ),
+                dcc.Graph(
+                    id='graph'
+                )], style={'position': 'absolute', 'top': '20%', 'left': '15%', 'width': '1700px'}),
             html.Div([dash_table.DataTable(
                 id='data_table',
                 columns=[{'id': c, 'name': c, 'hideable': True} for c in cachedDataFrame.columns[1:7]],
@@ -416,22 +463,8 @@ app.layout = html.Div([
                     'height': '60px',
                     'font-size': '20px',
                     'textAlign': 'center'}
-            )], style={'position': 'absolute', 'top': '18%', 'left': '15%', 'rigth': '80%', 'width': '1700px',
+            )], style={'position': 'absolute', 'top': '90%', 'left': '15%', 'rigth': '80%', 'width': '1700px',
                        'height': '700px', 'border': '9B51E0'}),
-            html.Div([
-                dcc.Dropdown(
-                    id='dropDownList',
-                    options=[
-                        {'label': 'Hour average', 'value': 'Hour average'},
-                        {'label': 'Day average', 'value': 'Day average'},
-                        {'label': 'Week average', 'value': 'Week average'},
-                        {'label': 'Mounth average', 'value': 'Mounth average'}
-                    ],
-                    placeholder="Select a parameter",
-                ),
-                dcc.Graph(
-                    id='graph'
-                )], style={'position': 'absolute', 'top': '110%', 'left': '15%', 'width': '1700px'}),
 
         ]),
 
@@ -461,30 +494,20 @@ app.layout = html.Div([
                 html.Div([
                     dcc.Dropdown(
                         id='crossfilter-xaxis-column',
-                        options=[{'label': i, 'value': i} for i in available_indicators], style={'width': '50%'},
+                        options=[{'label': i, 'value': i} for i in available_indicators], style={'width': '75%'},
                         value='T'
                     ),
-                    dcc.RadioItems(
-                        id='crossfilter-xaxis-type',
-                        options=[{'label': i, 'value': i} for i in ['Linear', 'Log']],
-                        value='Linear',
-                        labelStyle={'display': 'inline-block'}
-                    )
+
                 ],
                     style={'width': '49%', 'display': 'inline-block'}),
                 html.Div([
                     dcc.Dropdown(
                         id='crossfilter-yaxis-column',
                         options=[{'label': i, 'value': i} for i in available_indicators],
-                        style={'top': '10%', 'left': '60%', 'width': '50%'},
+                        style={'top': '10%', 'left': '60%', 'width': '75%'},
                         value='Humidity'
                     ),
-                    dcc.RadioItems(
-                        id='crossfilter-yaxis-type',
-                        options=[{'label': i, 'value': i} for i in ['Linear', 'Log']],
-                        value='Linear',
-                        labelStyle={'display': 'inline-block'}
-                    )
+
                 ], style={'width': '49%', 'float': 'right', 'display': 'inline-block'}),
                 dcc.DatePickerRange(
                     id="datePickerRangeId",
@@ -538,14 +561,23 @@ def create_pandas_table(database=conn):
     return newTableDataJson
 
 
-@app.callback(dash.dependencies.Output('graphTempeture', 'figure'),
-              [dash.dependencies.Input('graph_type_tempeture', 'value'),
+@app.callback(dash.dependencies.Output('graphTempetureTemperatureAndHymiditySensor', 'figure'),
+              [dash.dependencies.Input('graph_type_tempetureTemperatureAndHymiditySensor', 'value'),
                dash.dependencies.Input('intermediate-value', 'children')])
 def update_graph_tempeture(graph_type_tempeture, jsonified_data):
     if graph_type_tempeture == 'Current':
-        return draw_graphLine('Temperature', 'T', jsonified_data)
+        return draw_graphLine('Temperature', 'T', jsonified_data, 'Temperature and Humidity Sensor Pro')
     elif graph_type_tempeture == 'Daily average':
-        return draw_graphBar('Temperature', 'T', jsonified_data)
+        return draw_graphBar('Temperature', 'T', jsonified_data, 'Temperature and Humidity Sensor Pro')
+
+@app.callback(dash.dependencies.Output('graphTempetureHighAccuracySensor', 'figure'),
+              [dash.dependencies.Input('graph_type_tempetureHighAccuracySensor', 'value'),
+               dash.dependencies.Input('intermediate-value', 'children')])
+def update_graph_tempeture(graph_type_tempeture, jsonified_data):
+    if graph_type_tempeture == 'Current':
+        return draw_graphLine('Temperature', 'T', jsonified_data, 'High Accuracy Temperature')
+    elif graph_type_tempeture == 'Daily average':
+        return draw_graphBar('Temperature', 'T', jsonified_data, 'High Accuracy Temperature')
 
 
 @app.callback(dash.dependencies.Output('graphLumens', 'figure'),
@@ -553,9 +585,9 @@ def update_graph_tempeture(graph_type_tempeture, jsonified_data):
                dash.dependencies.Input('intermediate-value', 'children')])
 def update_graph_lumens(graph_type_lumens, jsonified_data):
     if graph_type_lumens == 'Current':
-        return draw_graphLine('Lumens', 'Lumen', jsonified_data)
+        return draw_graphLine('Lumens', 'Lumen', jsonified_data, 'Sunlight Sensor')
     elif graph_type_lumens == 'Daily average':
-        return draw_graphBar('Lumens', 'Lumen', jsonified_data)
+        return draw_graphBar('Lumens', 'Lumen', jsonified_data, 'Sunlight Sensor')
 
 
 @app.callback(dash.dependencies.Output('graphTVOC', 'figure'),
@@ -563,9 +595,9 @@ def update_graph_lumens(graph_type_lumens, jsonified_data):
                dash.dependencies.Input('intermediate-value', 'children')])
 def update_graph_tvoc(graph_type_tvoc, jsonified_data):
     if graph_type_tvoc == 'Current':
-        return draw_graphLine('Total Volatile Organic Compunds', 'Total Volatile Organic Compounds', jsonified_data)
+        return draw_graphLine('Total Volatile Organic Compunds', 'Total Volatile Organic Compounds', jsonified_data,'Grove VOC and eCO2 Gas Sensor')
     elif graph_type_tvoc == 'Daily average':
-        return draw_graphBar('Total Volatile Organic Compunds', 'Total Volatile Organic Compounds', jsonified_data)
+        return draw_graphBar('Total Volatile Organic Compunds', 'Total Volatile Organic Compounds', jsonified_data,'Grove VOC and eCO2 Gas Sensor')
 
 
 @app.callback(dash.dependencies.Output('graphHumidity', 'figure'),
@@ -573,9 +605,9 @@ def update_graph_tvoc(graph_type_tvoc, jsonified_data):
                dash.dependencies.Input('intermediate-value', 'children')])
 def update_graph_humidity(graph_type_tvoc, jsonified_data):
     if graph_type_tvoc == 'Current':
-        return draw_graphLine('Humidity', 'Humidity', jsonified_data)
+        return draw_graphLine('Humidity', 'Humidity', jsonified_data,'Temperature and Humidity Sensor Pro')
     elif graph_type_tvoc == 'Daily average':
-        return draw_graphBar('Humidity', 'Humidity', jsonified_data)
+        return draw_graphBar('Humidity', 'Humidity', jsonified_data,'Temperature and Humidity Sensor Pro')
 
 
 @app.callback(dash.dependencies.Output('graphUltraVioletIndex', 'figure'),
@@ -583,9 +615,9 @@ def update_graph_humidity(graph_type_tvoc, jsonified_data):
                dash.dependencies.Input('intermediate-value', 'children')])
 def update_graph_uvIndex(graph_type_ultra_violetindex, jsonified_data):
     if graph_type_ultra_violetindex == 'Current':
-        return draw_graphLine('Ultraviolet index', 'Ultraviolet index', jsonified_data)
+        return draw_graphLine('Ultraviolet index', 'Ultraviolet index', jsonified_data, 'Sunlight Sensor')
     elif graph_type_ultra_violetindex == 'Daily average':
-        return draw_graphBar('Ultraviolet index', 'Ultraviolet index', jsonified_data)
+        return draw_graphBar('Ultraviolet index', 'Ultraviolet index', jsonified_data, 'Sunlight Sensor')
 
 
 @app.callback(dash.dependencies.Output('graphDetsibel', 'figure'),
@@ -593,20 +625,31 @@ def update_graph_uvIndex(graph_type_ultra_violetindex, jsonified_data):
                dash.dependencies.Input('intermediate-value', 'children')])
 def update_graph_detsibell(graph_type_detsibel, jsonified_data):
     if graph_type_detsibel == 'Current':
-        return draw_graphLine('Decibel', 'Detsibell', jsonified_data)
+        return draw_graphLine('Decibel', 'Detsibell', jsonified_data,'Loudness Sensor')
     elif graph_type_detsibel == 'Daily average':
-        return draw_graphBar('Decibel', 'Detsibell', jsonified_data)
+        return draw_graphBar('Decibel', 'Detsibell', jsonified_data,'Loudness Sensor')
 
 
-@app.callback(dash.dependencies.Output('graphIlluminance', 'figure'),
-              [dash.dependencies.Input('graph_type_illuminance', 'value'),
+@app.callback(dash.dependencies.Output('graphIlluminanceIR', 'figure'),
+              [dash.dependencies.Input('graph_type_illuminanceIR', 'value'),
                dash.dependencies.Input('intermediate-value', 'children')
                ])
 def update_graph_Illuminance(graph_type_illuminance, jsonified_data):
     if graph_type_illuminance == 'Current':
-        return draw_graphLine('Illuminance', 'Illuminance (IR)', jsonified_data)
+        return draw_graphLine('Illuminance (IR)', 'Illuminance (IR)', jsonified_data,'Sunlight Sensor')
     elif graph_type_illuminance == 'Daily average':
-        return draw_graphBar('Illuminance', 'Illuminance (IR)', jsonified_data)
+        return draw_graphBar('Illuminance (IR)', 'Illuminance (IR)', jsonified_data,'Sunlight Sensor')
+
+
+@app.callback(dash.dependencies.Output('graphIlluminanceVisible', 'figure'),
+              [dash.dependencies.Input('graph_type_illuminanceVisible', 'value'),
+               dash.dependencies.Input('intermediate-value', 'children')
+               ])
+def update_graph_Illuminance(graph_type_illuminance, jsonified_data):
+    if graph_type_illuminance == 'Current':
+        return draw_graphLine('Illuminance (Visible)', 'Illuminance (Visible)', jsonified_data, 'Light Sensor')
+    elif graph_type_illuminance == 'Daily average':
+        return draw_graphBar('Illuminance (Visible)', 'Illuminance (Visible)', jsonified_data, 'Light Sensor')
 
 
 @app.callback(dash.dependencies.Output('graphCO2', 'figure'),
@@ -614,9 +657,9 @@ def update_graph_Illuminance(graph_type_illuminance, jsonified_data):
                dash.dependencies.Input('intermediate-value', 'children')])
 def update_graph_Carbon(graph_type_co2, jsonified_data):
     if graph_type_co2 == 'Current':
-        return draw_graphLine('Carbon dioxide equivalent CO2eq', 'Carbon dioxide equivalent CO2eq', jsonified_data)
+        return draw_graphLine('Carbon dioxide equivalent CO2eq', 'Carbon dioxide equivalent CO2eq', jsonified_data,'Grove VOC and eCO2 Gas Sensor')
     elif graph_type_co2 == 'Daily average':
-        return draw_graphBar('Carbon dioxide equivalent CO2eq', 'Carbon dioxide equivalent CO2eq', jsonified_data)
+        return draw_graphBar('Carbon dioxide equivalent CO2eq', 'Carbon dioxide equivalent CO2eq', jsonified_data,'Grove VOC and eCO2 Gas Sensor')
 
 
 @app.callback(dash.dependencies.Output('graphPIRon', 'figure'),
@@ -625,9 +668,9 @@ def update_graph_Carbon(graph_type_co2, jsonified_data):
                ])
 def update_graph_PIROn(graph_type_piron, jsonified_data):
     if graph_type_piron == 'Current':
-        return draw_graphLine('PIR on', 'PIR on', jsonified_data)
+        return draw_graphLine('PIR on', 'PIR on', jsonified_data,'PIR Motion Sensor')
     elif graph_type_piron == 'Daily average':
-        return draw_graphBar('PIR on', 'PIR on', jsonified_data)
+        return draw_graphBar('PIR on', 'PIR on', jsonified_data,'PIR Motion Sensor')
 
 
 @app.callback(
@@ -640,9 +683,11 @@ def update_graph_PIROn(graph_type_piron, jsonified_data):
     ]
 )
 def update_table(parameter, start_date, end_date, jsonified_data):
+    splitedParameter= parameter.split(',')[0]
+    sensor = parameter.split(',')[1]
     df = pd.read_json(jsonified_data, orient='split')
     dataFrameTable = pd.DataFrame.from_dict(df)
-    filtered_df = dataFrameTable[(dataFrameTable['valuetype'] == parameter) &
+    filtered_df = dataFrameTable[(dataFrameTable['valuetype'] == splitedParameter) & (dataFrameTable['sensor'] ==sensor) &
                                  (dataFrameTable['date_time'].between(start_date, end_date))]
     return filtered_df.to_dict('records')
 
@@ -679,10 +724,12 @@ def update_GaugeTempFromTemperatureAndHumiditySensor(value, jsonified_data):
      ]
 )
 def update_GaugeTempFromHighAccuracySensor(value, jsonified_data):
+
     df = pd.read_json(jsonified_data, orient='split')
     dataFrameTable = pd.DataFrame.from_dict(df)
     filtered_df = dataFrameTable.query('valuetype=="T" & room == 208 & sensor =="High Accuracy Temperature"')
     tempeture = filtered_df.iat[0, 6]
+
     return tempeture
 
 
@@ -800,34 +847,35 @@ def update_TVOCGauge(value, jsonified_data):
     return tvoc
 
 
-def draw_graphLine(name, parameter, jsonified_data):
+def draw_graphLine(name, parameter, jsonified_data,sensor):
     dataSQL = []
     X = deque(maxlen=20)
     Y = deque(maxlen=20)
-    df = pd.read_json(jsonified_data, orient='split')
-    dataFrameTable = pd.DataFrame.from_dict(df)
-    filtered_df = dataFrameTable.query('valuetype=="T"')
+    dataframe = pd.read_json(jsonified_data, orient='split')
+    filtered_df = dataframe[(dataframe['valuetype'] == parameter) & (dataframe['sensor'] == sensor)]
+    rows = filtered_df.head(20)
     for row in filtered_df:
         dataSQL.append(list(row))
-        dff = df[df['valuetype'] == parameter]
-        X = dff['date_time']
-        Y = dff['data']
-        dim = dff['dimension'].unique()
-    data = plotly.graph_objs.Scatter(
+        labels = ['date_time', 'valuetype', 'data', 'dimension']
+        df = pd.DataFrame.from_dict(dataSQL)
+        dff = rows[rows['valuetype'] == parameter]
+        X = rows['date_time']
+        Y = rows['data']
+        dim = rows['dimension'].unique()
+        data = plotly.graph_objs.Scatter(
         x=list(X),
         y=list(Y),
         name='Scatter',
         mode='lines+markers'
-    )
-    return {'data': [data], 'layout': go.Layout(title=go.layout.Title(text='{}, {}'.format(name, dim)),
+        )
+    return {'data': [data], 'layout': go.Layout(title=go.layout.Title(text='{}, {}'.format(name,dim, sensor )),
                                                 xaxis=dict(range=[min(X), max(X)]),
                                                 yaxis=dict(range=[min(Y) - 1, max(Y) + 1]))}
 
 
-def draw_graphBar(name, parameter, jsonified_data):
-    df = pd.read_json(jsonified_data, orient='split')
-    dataFrameTable = pd.DataFrame.from_dict(df)
-    filtered_df = dataFrameTable[(dataFrameTable['valuetype'] == parameter)]
+def draw_graphBar(name, parameter, jsonified_data, sensor):
+    dataframe = pd.read_json(jsonified_data, orient='split')
+    filtered_df = dataframe[(dataframe['valuetype'] == parameter) &(dataframe['sensor'] == sensor)]
     dim = filtered_df['dimension'].unique()
     dff1 = filtered_df.loc[:, ['date_time', 'data']]
     dff1['date_time'] = pd.to_datetime(dff1['date_time'])
@@ -835,7 +883,7 @@ def draw_graphBar(name, parameter, jsonified_data):
     data2 = dff1.groupby(['date']).mean()
     data = go.Bar(x=data2.index.map(str), y=list(data2['data']))
     return {'data': [data],
-            'layout': go.Layout(title=go.layout.Title(text='Day average: {}, {}'.format(name, dim)))}
+            'layout': go.Layout(title=go.layout.Title(text='{}, {}'.format(name,dim,sensor)))}
 
 
 @app.callback(dash.dependencies.Output('graph', 'figure'),
@@ -845,10 +893,12 @@ def draw_graphBar(name, parameter, jsonified_data):
                Input(component_id='datePickerId', component_property='end_date'),
                Input('intermediate-value', 'children')])
 def drawGraphBarAverage(parameter, dropDownList, startDate, endDate, jsonified_data):
+    splitedParameter = parameter.split(',')[0]
+    sensor = parameter.split(',')[1]
     df = pd.read_json(jsonified_data, orient='split')
     dataFrameTable = pd.DataFrame.from_dict(df)
     filtered_df = dataFrameTable[
-        (dataFrameTable['valuetype'] == parameter) & (dataFrameTable['date_time'].between(startDate, endDate))]
+        (dataFrameTable['valuetype'] == splitedParameter) & (dataFrameTable['sensor']== sensor) & (dataFrameTable['date_time'].between(startDate, endDate))]
     dim = filtered_df['dimension'].unique()
     dff2 = filtered_df.loc[:, ['date_time', 'data']]
     dff2['date_time'] = pd.to_datetime(dff2['date_time'])
@@ -865,14 +915,13 @@ def drawGraphBarAverage(parameter, dropDownList, startDate, endDate, jsonified_d
         data4 = dff2.groupby(['dates']).mean()
         data = go.Bar(x=data4.index.map(str), y=list(data4['data']))
 
-    elif dropDownList == 'Week average':
-        dff2['weeks'] = dff2['date_time'].dt.week
-        data4 = dff2.groupby(['weeks']).mean()
-        data = go.Bar(x=data4.index.map(str), y=list(data4['data']))
-    else:
-        dff2['mounth'] = dff2['date_time'].dt.month
-        data4 = dff2.groupby(['mounth']).mean()
-        data = go.Bar(x=data4.index.map(str), y=list(data4['data']))
+   # else:
+       # dff2['hours'] = dff2['date_time'].dt.hour
+       # dff2['dates'] = dff2['date_time'].dt.date
+       # data4 = dff2.groupby(['dates', 'hours'], as_index=False).mean()
+       # data4['dateAndHours'] = data4['dates'].astype(str).apply(
+        #    lambda x: dt.datetime.strptime(x, '%Y-%m-%d')) + pd.to_timedelta(data4['hours'], unit='h')
+       # data = go.Bar(x=list(data4['dateAndHours']), y=list(data4['data']))
     return {'data': [data],
             'layout': go.Layout(title=go.layout.Title(text=': {}, {}'.format(parameter, dim)))}
 
@@ -881,14 +930,13 @@ def drawGraphBarAverage(parameter, dropDownList, startDate, endDate, jsonified_d
     dash.dependencies.Output('crossfilterParameterGraph', 'figure'),
     [dash.dependencies.Input('crossfilter-xaxis-column', 'value'),
      dash.dependencies.Input('crossfilter-yaxis-column', 'value'),
-     dash.dependencies.Input('crossfilter-xaxis-type', 'value'),
-     dash.dependencies.Input('crossfilter-yaxis-type', 'value'),
      dash.dependencies.Input('datePickerRangeId', 'start_date'),
      dash.dependencies.Input('datePickerRangeId', 'end_date'),
      dash.dependencies.Input('intermediate-value', 'children')
      ])
-def updateGraph(firstParameter_xaxis, secondParameter_yaxis, xaxis_type, yaxis_type, startDatePeriod, endDatePeriod,
-                jsonified_data):
+def updateGraph(firstParameter_xaxis, secondParameter_yaxis,  startDatePeriod, endDatePeriod, jsonified_data):
+    splitedFirstParameter = firstParameter_xaxis.split(',')[0]
+    splitedSecondParameter = secondParameter_yaxis.split(',')[0]
     df = pd.read_json(jsonified_data, orient='split')
     dataFrameTable = pd.DataFrame.from_dict(df)
 
@@ -897,8 +945,8 @@ def updateGraph(firstParameter_xaxis, secondParameter_yaxis, xaxis_type, yaxis_t
 
     return {
         'data': [dict(
-            x=filtered_df[filtered_df['valuetype'] == firstParameter_xaxis]['data'],
-            y=filtered_df[filtered_df['valuetype'] == secondParameter_yaxis]['data'],
+            x=filtered_df[filtered_df['valuetype'] == splitedFirstParameter]['data'],
+            y=filtered_df[filtered_df['valuetype'] == splitedSecondParameter]['data'],
             text=filtered_df[filtered_df['valuetype'] == secondParameter_yaxis]['dimension'],
             customdata=filtered_df[filtered_df['valuetype'] == secondParameter_yaxis]['sensor'],
             mode='markers',
@@ -910,12 +958,12 @@ def updateGraph(firstParameter_xaxis, secondParameter_yaxis, xaxis_type, yaxis_t
         )],
         'layout': dict(
             xaxis={
-                'title': firstParameter_xaxis,
-                'type': 'linear' if xaxis_type == 'Linear' else 'log'
+                'title': splitedFirstParameter,
+
             },
             yaxis={
-                'title': secondParameter_yaxis,
-                'type': 'linear' if yaxis_type == 'Linear' else 'log'
+                'title': splitedSecondParameter,
+
             },
             margin={'l': 40, 'b': 30, 't': 10, 'r': 0},
             height=450,
@@ -924,7 +972,7 @@ def updateGraph(firstParameter_xaxis, secondParameter_yaxis, xaxis_type, yaxis_t
     }
 
 
-def create_series(dff, axis_type, title):
+def create_series(dff,title):
     return {
         'data': [dict(
             x=dff['date_time'],
@@ -940,7 +988,7 @@ def create_series(dff, axis_type, title):
                 'align': 'left', 'bgcolor': 'rgba(255, 255, 255, 0.5)',
                 'text': title
             }],
-            'yaxis': {'type': 'linear' if axis_type == 'Linear' else 'log'},
+            #'yaxis': {'type': 'linear' if axis_type == 'Linear' else 'log'},
             'xaxis': {'showgrid': False}
 
         }
@@ -951,37 +999,38 @@ def create_series(dff, axis_type, title):
     dash.dependencies.Output('x-time-series', 'figure'),
     [dash.dependencies.Input('crossfilterParameterGraph', 'hoverData'),
      dash.dependencies.Input('crossfilter-xaxis-column', 'value'),
-     dash.dependencies.Input('crossfilter-xaxis-type', 'value'),
      dash.dependencies.Input('intermediate-value', 'children')
      ])
-def update_x_timeseries(hoverData, firstParameter_xaxis, firstParameter_xaxis_type, jsonified_data):
+def update_x_timeseries(hoverData, firstParameter_xaxis,  jsonified_data):
+    splitedFirstParameter = firstParameter_xaxis.split(',')[0]
     df = pd.read_json(jsonified_data, orient='split')
 
-    parameterName = hoverData['points'][0]['customdata']
-    dff = df[df['valuetype'] == parameterName]
-    dff = df[df['valuetype'] == firstParameter_xaxis]
-    title = '<b>{}</b><br>{}'.format(dff['sensor'].iloc[0], firstParameter_xaxis)
-    return create_series(dff, firstParameter_xaxis_type, title)
+   # parameterName = hoverData['points'][0]['customdata']
+   # dff = df[df['valuetype'] == parameterName]
+    dff = df[df['valuetype'] == splitedFirstParameter]
+    title = '<b>{}</b><br>{}'.format(dff['sensor'].iloc[0], splitedFirstParameter)
+    return create_series(dff,title)
 
 
 @app.callback(
     Output('y-time-series', 'figure'),
     [Input('crossfilterParameterGraph', 'hoverData'),
      Input('crossfilter-yaxis-column', 'value'),
-     Input('crossfilter-yaxis-type', 'value'),
+
      Input('intermediate-value', 'children')
      ])
-def update_y_timeseries(hoverData, secondParameter_yaxis, secondParameter_yaxis_type, jsonified_data):
+def update_y_timeseries(hoverData, secondParameter_yaxis, jsonified_data):
+    splitedSecondParameter = secondParameter_yaxis.split(',')[0]
     df = pd.read_json(jsonified_data, orient='split')
    # dataFrameTable = pd.DataFrame.from_dict(df)
 
     # df = pd.DataFrame.from_records(dataSQL, columns=labels)
    # dff = df[df['valuetype'] == secondParameter_yaxis]
-    parameterName = hoverData['points'][0]['customdata']
-    dff = df[df['valuetype'] == parameterName]
-    dff = df[df['valuetype'] == secondParameter_yaxis]
-    title = '<b>{}</b><br>{}'.format(parameterName, secondParameter_yaxis)
-    return create_series(dff, secondParameter_yaxis_type, title)
+   # parameterName = hoverData['points'][0]['customdata']
+   # dff = df[df['valuetype'] == parameterName]
+    dff = df[df['valuetype'] == splitedSecondParameter]
+    title = '<b>{}</b><br>{}'.format(dff['sensor'].iloc[0], splitedSecondParameter)
+    return create_series(dff,  title)
 
 
 if __name__ == '__main__':
