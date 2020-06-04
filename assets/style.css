@@ -1,0 +1,110 @@
+circle {
+        stroke-width: 20px;
+}
+/*#gaugeTemperatureAndHumiditySensor > div > div > div > label{
+font-size: 30px
+}*/
+/*units{
+font-size: 30px
+}
+/*Div{
+border-style: solid;
+  border-color: blue;
+}*/
+
+
+/*undefined-parent > div.jsx-4017309047.tab-content > div > div:nth-child(2){
+height : 400px;
+border-style : solid;
+border-color : blue;
+}*/
+
+#gaugeTemperatureAndHumiditySensor > div > div > div{
+top: 20%;
+font-size: 25px
+}
+#gaugeTemperatureAndHumiditySensor > div > div > div > label{
+top: 20%;
+font-size: 25px
+}
+
+#gaugeHighAccuracySensor > div > div > div{
+font-size: 25px
+}
+#gaugeHighAccuracySensor > div > div > div > label{
+font-size: 25px
+}
+
+#lumenGauge > div > div > div {
+font-size: 25px
+}
+#lumenGauge > div > div > div > label{
+font-size: 25px
+}
+
+/*#gaugeTemperatureAndHumiditySensor > div > div > div{
+top: 20%;
+font-size: 25px
+}*/
+/*#lumenGauge> div > div > div > label{
+font-size: 25px
+}*/
+#ultravioletGauge> div > div > div {
+font-size: 25px
+}
+#ultravioletGauge> div > div > div > label{
+font-size: 25px
+}
+
+#IlluminanceGauge> div > div > div {
+font-size: 25px
+}
+
+#IlluminanceGauge> div > div > div > label{
+font-size: 25px
+}
+
+#humidityGauge> div > div > div {
+font-size: 25px
+}
+#humidityGauge> div > div > div > label{
+font-size: 25px
+}
+
+#TotalVoletileOrganicCompoundsGauge> div > div > div {
+font-size: 25px
+}
+
+#TotalVoletileOrganicCompoundsGauge> div > div > div > label{
+font-size: 25px
+}
+
+#detsibellGauge> div > div > div {
+font-size: 25px
+}
+
+#detsibellGauge> div > div > div > label{
+font-size: 25px
+}
+
+#CarbonDioxideEquivalentCO2Gauge> div > div > div {
+font-size: 25px
+}
+#CarbonDioxideEquivalentCO2Gauge> div > div > div > label{
+font-size: 25px
+}
+#PirOn> div > div > div {
+font-size: 25px
+}
+#PirOn> div > div > div > label{
+font-size: 25px
+}
+*[data-dash-is-loading="true"]{
+    visibility: hidden;
+}
+*[data-dash-is-loading="true"]::before{
+    content: "Loading...";
+    display: inline-block;
+    color: magenta;
+    visibility: visible;
+}
